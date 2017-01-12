@@ -18,12 +18,11 @@
 
 import os.path
 import time
-
 import tensorflow as tf
 
 from tensorflow.python.framework import test_util
 from tensorflow.python.platform import googletest
-from tensorflow.python.platform import logging
+from tensorflow.python.platform import tf_logging as logging
 
 from syntaxnet import structured_graph_builder
 from syntaxnet.ops import gen_parser_ops

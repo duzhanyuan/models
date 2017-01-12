@@ -15,7 +15,7 @@
 """Read and preprocess image data.
 
  Image processing occurs on a single image at a time. Image are read and
- preprocessed in pararllel across mulitple threads. The resulting images
+ preprocessed in parallel across multiple threads. The resulting images
  are concatenated together to form a single batch for training or evaluation.
 
  -- Provide processed image data for a network:
@@ -54,7 +54,7 @@ tf.app.flags.DEFINE_integer('num_preprocess_threads', 4,
 tf.app.flags.DEFINE_integer('num_readers', 4,
                             """Number of parallel readers during train.""")
 
-# Images are preprocessed asynchronously using multiple threads specifed by
+# Images are preprocessed asynchronously using multiple threads specified by
 # --num_preprocss_threads and the resulting processed images are stored in a
 # random shuffling queue. The shuffling queue dequeues --batch_size images
 # for processing on a given Inception tower. A larger shuffling queue guarantees
@@ -253,8 +253,8 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
     # fashion based on the thread number.
     # Note that ResizeMethod contains 4 enumerated resizing methods.
     resize_method = thread_id % 4
-    distorted_image = tf.image.resize_images(distorted_image, height, width,
-                                             resize_method)
+    distorted_image = tf.image.resize_images(distorted_image, [height, width],
+                                             method=resize_method)
     # Restore the shape since the dynamic slice based upon the bbox_size loses
     # the third dimension.
     distorted_image.set_shape([height, width, 3])

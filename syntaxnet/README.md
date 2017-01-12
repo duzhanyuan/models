@@ -1,7 +1,11 @@
 # SyntaxNet: Neural Models of Syntax.
 
 *A TensorFlow implementation of the models described in [Andor et al. (2016)]
-(http://arxiv.org/pdf/1603.06042v1.pdf).*
+(http://arxiv.org/abs/1603.06042).*
+
+**Update**: Parsey models are now [available](universal.md) for 40 languages
+trained on Universal Dependencies datasets, with support for text segmentation
+and morphological analysis.
 
 At Google, we spend a lot of time thinking about how computer systems can read
 and understand human language in order to process it in intelligent ways. We are
@@ -25,13 +29,13 @@ Model                                                                           
 [Martins et al. (2013)](http://www.cs.cmu.edu/~ark/TurboParser/)                                                | 93.10 | 88.23 | 94.21
 [Zhang and McDonald (2014)](http://research.google.com/pubs/archive/38148.pdf)                                  | 93.32 | 88.65 | 93.37
 [Weiss et al. (2015)](http://static.googleusercontent.com/media/research.google.com/en//pubs/archive/43800.pdf) | 93.91 | 89.29 | 94.17
-[Andor et al. (2016)](http://arxiv.org/pdf/1603.06042v1.pdf)*                                                   | 94.44 | 90.17 | 95.40
+[Andor et al. (2016)](http://arxiv.org/abs/1603.06042)*                                                         | 94.44 | 90.17 | 95.40
 Parsey McParseface                                                                                              | 94.15 | 89.08 | 94.77
 
 We see that Parsey McParseface is state-of-the-art; more importantly, with
 SyntaxNet you can train larger networks with more hidden units and bigger beam
 sizes if you want to push the accuracy even further: [Andor et al. (2016)]
-(http://arxiv.org/pdf/1603.06042v1.pdf)* is simply a SyntaxNet model with a
+(http://arxiv.org/abs/1603.06042)* is simply a SyntaxNet model with a
 larger beam and network. For futher information on the datasets, see that paper
 under the section "Treebank Union".
 
@@ -40,8 +44,8 @@ Parsey McParseface is also state-of-the-art for part-of-speech (POS) tagging
 
 Model                                                                      | News  | Web   | Questions
 -------------------------------------------------------------------------- | :---: | :---: | :-------:
-[Ling et al. (2015)](http://www.cs.cmu.edu/~lingwang/papers/emnlp2015.pdf) | 97.78 | 94.03 | 96.18
-[Andor et al. (2016)](http://arxiv.org/pdf/1603.06042v1.pdf)*              | 97.77 | 94.80 | 96.86
+[Ling et al. (2015)](http://www.cs.cmu.edu/~lingwang/papers/emnlp2015.pdf) | 97.44 | 94.03 | 96.18
+[Andor et al. (2016)](http://arxiv.org/abs/1603.06042)*                    | 97.77 | 94.80 | 96.86
 Parsey McParseface                                                         | 97.52 | 94.24 | 96.45
 
 The first part of this tutorial describes how to install the necessary tools and
@@ -72,18 +76,32 @@ instructions for training models on other datasets.
 Running and training SyntaxNet models requires building this package from
 source. You'll need to install:
 
+*   python 2.7:
+    * python 3 support is not available yet
+*   pip (python package manager)
+    * `apt-get install python-pip` on Ubuntu
+    * `brew` installs pip along with python on OSX
 *   bazel:
+    *   **versions 0.3.0 - 0.3.1*
     *   follow the instructions [here](http://bazel.io/docs/install.html)
-    *   **Note: You must use bazel version 0.2.2, NOT 0.2.2b, due to a WORKSPACE
-        issue**
+    *   Alternately, Download bazel <.deb> from
+        [https://github.com/bazelbuild/bazel/releases]
+        (https://github.com/bazelbuild/bazel/releases) for your system
+        configuration.
+    *   Install it using the command: sudo dpkg -i <.deb file>
+    *   Check for the bazel version by typing: bazel version
 *   swig:
     *   `apt-get install swig` on Ubuntu
     *   `brew install swig` on OSX
 *   protocol buffers, with a version supported by TensorFlow:
-    *   check your protobuf version with `pip freeze | grep protobuf1`
+    *   check your protobuf version with `pip freeze | grep protobuf`
     *   upgrade to a supported version with `pip install -U protobuf==3.0.0b2`
 *   asciitree, to draw parse trees on the console for the demo:
     *   `pip install asciitree`
+*   numpy, package for scientific computing:
+    *   `pip install numpy`
+*   mock, package for unit testing:
+    *   `pip install mock`
 
 Once you completed the above steps, you can build and test SyntaxNet with the
 following commands:
@@ -100,6 +118,15 @@ following commands:
 ```
 
 Bazel should complete reporting all tests passed.
+
+You can also compile SyntaxNet in a [Docker](https://www.docker.com/what-docker)
+container using this [Dockerfile](Dockerfile).
+
+To build SyntaxNet with GPU support please refer to the instructions in
+[issues/248](https://github.com/tensorflow/models/issues/248).
+
+**Note:** If you are running Docker on OSX, make sure that you have enough
+memory allocated for your Docker VM.
 
 ## Getting Started
 
@@ -142,11 +169,12 @@ To change the pipeline to read and write to specific files (as opposed to piping
 through stdin and stdout), we have to modify the `demo.sh` to point to the files
 we want. The SyntaxNet models are configured via a combination of run-time flags
 (which are easy to change) and a text format `TaskSpec` protocol buffer. The
-spec file used in the demo is in `syntaxnet/models/treebank_union/context`.
+spec file used in the demo is in
+`syntaxnet/models/parsey_mcparseface/context.pbtxt`.
 
 To use corpora instead of stdin/stdout, we have to:
 
-1.  Create or modify a `input` field inside the `TaskSpec`, with the
+1.  Create or modify an `input` field inside the `TaskSpec`, with the
     `file_pattern` specifying the location we want. If the input corpus is in
     CONLL format, make sure to put `record_format: 'conll-sentence'`.
 1.  Change the `--input` and/or `--output` flag to use the name of the resource
@@ -263,7 +291,7 @@ well just by considering a small window of words around the word of interest.
 For example, words that follow the word ‘the’ tend to be adjectives or nouns,
 rather than verbs.
 
-To predict POS tags, we use a simple setup. We processes the sentences
+To predict POS tags, we use a simple setup. We process the sentences
 left-to-right. For any given word, we extract features of that word and a window
 around it, and use these as inputs to a feed-forward neural network classifier,
 which predicts a probability distribution over POS tags. Because we make
@@ -455,7 +483,7 @@ predicts the next action to take.
 
 ### Training a Parser Step 1: Local Pretraining
 
-As described in our [paper](http://arxiv.org/pdf/1603.06042v1.pdf), the first
+As described in our [paper](http://arxiv.org/abs/1603.06042), the first
 step in training the model is to *pre-train* using *local* decisions. In this
 phase, we use the gold dependency to guide the parser, and train a softmax layer
 to predict the correct action given these gold dependencies. This can be
@@ -584,27 +612,32 @@ and parse text in the wild.
 
 ## Contact
 
-To ask questions or report issues please contact syntaxnet-users@google.com.
+To ask questions or report issues please post on Stack Overflow with the tag
+[syntaxnet](http://stackoverflow.com/questions/tagged/syntaxnet)
+or open an issue on the tensorflow/models
+[issues tracker](https://github.com/tensorflow/models/issues).
+Please assign SyntaxNet issues to @calberti or @andorardo.
 
 ## Credits
 
 Original authors of the code in this package include (in alphabetical order):
 
-*   apresta@google.com (Alessandro Presta)
-*   bohnetbd@google.com (Bernd Bohnet)
-*   chrisalberti@google.com (Chris Alberti)
-*   credo@google.com (Tim Credo)
-*   danielandor@google.com (Daniel Andor)
-*   djweiss@google.com (David Weiss)
-*   epitler@google.com (Emily Pitler)
-*   gcoppola@google.com (Greg Coppola)
-*   golding@google.com (Andy Golding)
-*   istefan@google.com (Stefan Istrate)
-*   kbhall@google.com (Keith Hall)
-*   kuzman@google.com (Kuzman Ganchev)
-*   mjcollins@google.com (Michael Collins)
-*   ringgaard@google.com (Michael Ringgaard)
-*   ryanmcd@google.com (Ryan McDonald)
-*   severyn@google.com (Aliaksei Severyn)
-*   slav@google.com (Slav Petrov)
-*   terrykoo@google.com (Terry Koo)
+*   Alessandro Presta
+*   Aliaksei Severyn
+*   Andy Golding
+*   Bernd Bohnet
+*   Chris Alberti
+*   Daniel Andor
+*   David Weiss
+*   Emily Pitler
+*   Greg Coppola
+*   Ji Ma
+*   Keith Hall
+*   Kuzman Ganchev
+*   Michael Collins
+*   Michael Ringgaard
+*   Ryan McDonald
+*   Slav Petrov
+*   Stefan Istrate
+*   Terry Koo
+*   Tim Credo

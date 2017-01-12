@@ -20,11 +20,10 @@
 import os
 import os.path
 import time
-
 import tensorflow as tf
 
 from tensorflow.python.platform import gfile
-from tensorflow.python.platform import logging
+from tensorflow.python.platform import tf_logging as logging
 
 from google.protobuf import text_format
 
